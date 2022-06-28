@@ -1,0 +1,41 @@
+!    -*- f90 -*-
+! Note: the context of this file is case sensitive.
+
+python module _interface ! in 
+    interface  ! in :_interface
+        subroutine mapping_(nr,nth,nph,yywt,nx,ny,nz,nnuc,x0,y0,z0,rho,xnu,r3c,r3l,r3r,dx,dy,dz,dphi,rhonew,xnunew,muc,mul,mur,phic,phil,phir,tol) ! in :_interface:interface.f90
+            integer intent(in) :: nr
+            integer intent(in) :: nth
+            integer intent(in) :: nph
+            real*8 dimension(:,:),intent(in) :: yywt
+            integer intent(in) :: nx
+            integer intent(in) :: ny
+            integer intent(in) :: nz
+            integer intent(in) :: nnuc
+            real*8 intent(in) :: x0
+            real*8 intent(in) :: y0
+            real*8 intent(in) :: z0
+            real*8 dimension(:,:,:),intent(in) :: rho
+            real*8 dimension(:,:,:,:),intent(in) :: xnu
+            real*8 dimension(:),intent(in) :: r3c
+            real*8 dimension(:),intent(in) :: r3l
+            real*8 dimension(:),intent(in) :: r3r
+            real*8 intent(in) :: dx
+            real*8 intent(in) :: dy
+            real*8 intent(in) :: dz
+            real*8 intent(in) :: dphi
+            real*8 dimension(:,:,:),intent(inout) :: rhonew
+            real*8 dimension(:,:,:,:),intent(inout) :: xnunew
+            real*8 dimension(:),intent(in) :: muc
+            real*8 dimension(:),intent(in) :: mul
+            real*8 dimension(:),intent(in) :: mur
+            real*8 dimension(:),intent(in) :: phic
+            real*8 dimension(:),intent(in) :: phil
+            real*8 dimension(:),intent(in) :: phir
+            real*8 intent(in) :: tol
+        end subroutine mapping_
+    end interface 
+end python module _interface
+
+! This file was auto-generated with f2py (version:1.21.4).
+! See http://cens.ioc.ee/projects/f2py2e/
