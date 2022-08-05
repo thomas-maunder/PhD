@@ -114,7 +114,10 @@ SUBROUTINE mapping(nr, nth, nph, yywt, nx, ny, nz, nnuc, x0, y0, &
 
          s1xnu = s1xnu / (1.d0+ abs(s1rho * (r3r(ii) - r3l(ii)) * rho0i) * x12)
          s2xnu = s2xnu / (1.d0+ abs(s2rho * (mur(jj) - mul(jj)) * rho0i) * x12)
-         s3xnu = s3xnu / (1.d0+ abs(s3rho * (phir(kk) - phil(kk)) * rho0i) * x12)
+         s3xnu = s3xnu / (1.d0IF (ny==1) THEN
+
+ELSE
++ abs(s3rho * (phir(kk) - phil(kk)) * rho0i) * x12)
 
 
 	 !s1rho = 0.d0
@@ -169,12 +172,23 @@ SUBROUTINE mapping(nr, nth, nph, yywt, nx, ny, nz, nnuc, x0, y0, &
      REAL*8  ::  x, y, z, tempx, tempy, tempz, R, Theta, s
 
      R = 3.d0*R3**p13
-     Theta = acos(Mu)
+  	 Theta = acos(Mu)
      s = sin(Theta)
 
-     tempx = R * s * cos(Phi)
-     tempy = R * s * sin(Phi)
-     tempz = R * Mu
+     IF (ny>=1 .and. nz >=1) THEN !3d
+       tempx = R * s * cos(Phi)
+       tempy = R * s * sin(Phi)
+       tempz = R * Mu
+     ELSEIF (ny==1 .and. nz >=1) THEN !2d
+       tempx = R * s
+       tempy = 0.
+       tempz = R * Mu
+     ELSE !1d
+       tempx = R
+       tempy = 0.0
+       tempz = 0.0
+     ENDIF
+
      IF (flipyy == 0) THEN
        x = tempx
        y = tempy
@@ -257,7 +271,11 @@ SUBROUTINE mapping(nr, nth, nph, yywt, nx, ny, nz, nnuc, x0, y0, &
      END IF
 !    print*,dv
      IF (ny==1) THEN
-       dv0 = pi*(2*mc+1)*dx**2*dz
+       IF (nz==1) THEN
+         dv0 = (4./3.)*pi*(3*mc**2+3*mc+1)*dx**3
+       ELSE
+         dv0 = pi*(2*mc+1)*dx**2*dz
+       END IF
      ELSE
        ! dv0 = float(dx*dy*dz)
        dv0 = dx*dy*dz

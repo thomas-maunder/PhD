@@ -10,7 +10,11 @@ from . import mapping
 # Use this function to map 2D->2D or 3D->3D
 def to_cart (R3, Mu, Phi, flipyy = 0):
     R = np.cbrt(3*R3)
+    if ny == 1:
+        Mu = 0
     Theta = np.arccos(Mu)
+    if nz == 1:
+        Phi = 0
     x = R * np.sin (Theta) * np.cos (Phi)
     y = R * np.sin (Theta) * np.sin (Phi)
     z = R * np.cos (Theta)
@@ -178,55 +182,55 @@ def map3d(model, rl, rr, thl, thr, phil, phir, x0, x1, z0, z1, nx, ny, nz, tol):
     if ny > 1:
         y = np.arange(y0,y1,dy)+0.5*dy
     z = np.arange(z0,z1,dz)+0.5*dz
-    # r = np.sqrt(np.outer(x**2,z**0) + np.outer(x**0,z**2))
-    r = np.sqrt(x**2 + y**2 + z**2)
+    r = np.sqrt(np.outer(x**2,z**0) + np.outer(x**0,z**2))
+    # r = np.sqrt(x**2 + y**2 + z**2)
     # GENERALISE R TO 3D
 
     xignew=np.sum(xnunew[:,:,:,14:nnuc-1],axis=3)
 
-    print('Saving plots...')
-    plt.contourf(z,x,np.log10(rhonew[:,ny//2,:]),50, cmap='inferno')
-    plt.xlabel(r'$x\ [\mathrm{cm}]$')
-    plt.ylabel(r'$z\ [\mathrm{cm}]$')
-    plt.gca().set_aspect('equal', adjustable='box')
-    plt.savefig('density.pdf')
-
-    plt.contourf(y,x,np.log10(rhonew[:,:,ny//2]),50, cmap='inferno')
-    plt.xlabel(r'$x\ [\mathrm{cm}]$')
-    plt.ylabel(r'$y\ [\mathrm{cm}]$')
-    plt.gca().set_aspect('equal', adjustable='box')
-    plt.show()
-
-    plt.contourf(z,y,np.log10(rhonew[ny//2,:,:]),50, cmap='inferno')
-    plt.xlabel(r'$y\ [\mathrm{cm}]$')
-    plt.ylabel(r'$z\ [\mathrm{cm}]$')
-    plt.gca().set_aspect('equal', adjustable='box')
-    plt.show()
-
-    plt.pcolor(z,y,np.log10(rhonew[ny//2,:,:]), cmap='inferno')
-    plt.xlabel(r'$y\ [\mathrm{cm}]$')
-    plt.ylabel(r'$z\ [\mathrm{cm}]$')
-    plt.gca().set_aspect('equal', adjustable='box')
-    plt.show()
-
-    plt.contourf(z,x,xignew[:,ny//2,:],50)
-    plt.xlabel(r'$x\ [\mathrm{cm}]$')
-    plt.ylabel(r'$z\ [\mathrm{cm}]$')
-    plt.gca().set_aspect('equal', adjustable='box')
-    plt.savefig('iron_group.pdf')
-
-    plt.contourf(z,x,xnunew[:,ny//2,:,7],50)
-    plt.xlabel(r'$x\ [\mathrm{cm}]$')
-    plt.ylabel(r'$z\ [\mathrm{cm}]$')
-    plt.gca().set_aspect('equal', adjustable='box')
-    plt.savefig('oxygen.pdf')
-
-    plt.contourf(z,x,xnunew[:,ny//2,:,4],50)
-    plt.xlabel(r'$x\ [\mathrm{cm}]$')
-    plt.ylabel(r'$z\ [\mathrm{cm}]$')
-    plt.gca().set_aspect('equal', adjustable='box')
-    plt.savefig('helium.pdf')
-    print('Plots saved')
+    # print('Saving plots...')
+    # plt.contourf(z,x,np.log10(rhonew[:,ny//2,:]),50, cmap='inferno')
+    # plt.xlabel(r'$x\ [\mathrm{cm}]$')
+    # plt.ylabel(r'$z\ [\mathrm{cm}]$')
+    # plt.gca().set_aspect('equal', adjustable='box')
+    # plt.savefig('density.pdf')
+    #
+    # plt.contourf(y,x,np.log10(rhonew[:,:,ny//2]),50, cmap='inferno')
+    # plt.xlabel(r'$x\ [\mathrm{cm}]$')
+    # plt.ylabel(r'$y\ [\mathrm{cm}]$')
+    # plt.gca().set_aspect('equal', adjustable='box')
+    # plt.show()
+    #
+    # plt.contourf(z,y,np.log10(rhonew[ny//2,:,:]),50, cmap='inferno')
+    # plt.xlabel(r'$y\ [\mathrm{cm}]$')
+    # plt.ylabel(r'$z\ [\mathrm{cm}]$')
+    # plt.gca().set_aspect('equal', adjustable='box')
+    # plt.show()
+    #
+    # plt.pcolor(z,y,np.log10(rhonew[ny//2,:,:]), cmap='inferno')
+    # plt.xlabel(r'$y\ [\mathrm{cm}]$')
+    # plt.ylabel(r'$z\ [\mathrm{cm}]$')
+    # plt.gca().set_aspect('equal', adjustable='box')
+    # plt.show()
+    #
+    # plt.contourf(z,x,xignew[:,ny//2,:],50)
+    # plt.xlabel(r'$x\ [\mathrm{cm}]$')
+    # plt.ylabel(r'$z\ [\mathrm{cm}]$')
+    # plt.gca().set_aspect('equal', adjustable='box')
+    # plt.savefig('iron_group.pdf')
+    #
+    # plt.contourf(z,x,xnunew[:,ny//2,:,7],50)
+    # plt.xlabel(r'$x\ [\mathrm{cm}]$')
+    # plt.ylabel(r'$z\ [\mathrm{cm}]$')
+    # plt.gca().set_aspect('equal', adjustable='box')
+    # plt.savefig('oxygen.pdf')
+    #
+    # plt.contourf(z,x,xnunew[:,ny//2,:,4],50)
+    # plt.xlabel(r'$x\ [\mathrm{cm}]$')
+    # plt.ylabel(r'$z\ [\mathrm{cm}]$')
+    # plt.gca().set_aspect('equal', adjustable='box')
+    # plt.savefig('helium.pdf')
+    # print('Plots saved')
 
 # Density and Detailed composition for ARTIS
 # Assuming slightly proton-rich ejecta
@@ -293,7 +297,35 @@ def map3d(model, rl, rr, thl, thr, phil, phir, x0, x1, z0, z1, nx, ny, nz, tol):
 #
 #     f.closed
 #     g.closed
-#
+
+    print('Writing input files for ARTIS.')
+
+    f = open('model_1d_100.txt', 'tw')
+    h = open('model.txt', 'tw')
+    g = open('abundances.txt', 'tw')
+
+
+# CHECK WITH STUART AND FINN HOW THEY SET UP 3D INPUT DATA
+    ij = 0
+    f.write ("%d \n" % (nx*ny*nz))
+    time = model.time()
+    f.write ("%16.8e \n" % (time/86400.))
+    # f.write ("%16.8e \n" % (max(x1/time,z1/time)))
+    for kk in range(nz):
+        for jj in range(ny):
+            for ii in range(nx):
+                ij += 1
+                velocity = (x[ii]/1.e5)/time
+                f.write ("%d %16.8e %16.8e %16.8e %16.8e %16.8e %16.8e %16.8e \n" % (ij, velocity, np.log10(xartis[ii,jj,kk,0]), xignew[ii,jj,kk], xni56[ii,jj,kk], xco56[ii,jj,kk], xfe52[ii,jj,kk], xcr48[ii,jj,kk]))
+                h.write ("%d %16.8e %16.8e %16.8e %16.8e %16.8e %16.8e %16.8e \n" % (ij, x[ii], xartis[ii,jj,kk,0], xignew[ii,jj,kk], xni56[ii,jj,kk], xco56[ii,jj,kk], xfe52[ii,jj,kk], xcr48[ii,jj,kk]))
+                out = " ".join(("%16.8e " %dat) for dat in tuple(xartis[ii,jj,kk,1:]))
+                g.write(("%d " % ij) + out + " \n")
+
+    f.closed
+    g.closed
+
+
+
     print('Writing HDF file...')
     with h5py.File('s3.5_mapped.h5', 'w') as hf:
        hf.create_dataset('model', data=xartis)
@@ -301,8 +333,12 @@ def map3d(model, rl, rr, thl, thr, phil, phir, x0, x1, z0, z1, nx, ny, nz, tol):
 
 # # Check mass of mapped model
     dv0 = dx*dy*dz
+    if ny ==1 and nz == 1:
+        mc = np.arange(0, nx)
+        dv0 = (4./3.)*np.pi*(3*mc**2+3*mc+1)*dx**3
     print("Mass of mapped model:",np.sum(xartis[:,:,:,0]*dv0)*solmassi,"M_sun")
     print("Iron group:          ",np.sum(xartis[:,:,:,0]*xignew[:,:,:]*dv0)*solmassi,"M_sun")
+    print(xartis[:,:,:,0])
 
     if np.argwhere(np.isnan(xartis[:,:,:,0])) != []:
         print('Problems in Zones ', np.argwhere(np.isnan(xartis[:,:,:,0])))
