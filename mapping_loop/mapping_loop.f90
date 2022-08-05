@@ -194,7 +194,13 @@ SUBROUTINE mapping(nr, nth, nph, yywt, nx, ny, nz, nnuc, x0, y0, &
  		REAL*8	::	x, y, z, tempx, tempy, tempz, R, Theta
 
  		R = 3*R3**(1./3.)
+		IF (ny == 1) THEN
+			Mu = 0
+		END IF
  		Theta = acos(Mu)
+		IF (nz == 1) THEN
+			Phi = 0
+		END IF
  		tempx = R * sin(Theta) * cos(Phi)
  		tempy = R * sin(Theta) * sin(Phi)
  		tempz = R * cos(Theta)
@@ -275,7 +281,11 @@ SUBROUTINE mapping(nr, nth, nph, yywt, nx, ny, nz, nnuc, x0, y0, &
  		END IF
 !		print*,dv
  		IF (ny==1) THEN
- 			dv0 = pi*(2*mc+1)*dx**2*dz
+			IF (nz==1) THEN
+				dv0 = (4./3.)*pi*(3*mc**2+3*mc+1)*dx**3
+			ELSE
+	 			dv0 = pi*(2*mc+1)*dx**2*dz
+			END IF
  		ELSE
  			! dv0 = float(dx*dy*dz)
  			dv0 = dx*dy*dz
