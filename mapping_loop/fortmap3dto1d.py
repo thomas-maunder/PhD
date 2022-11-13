@@ -1,5 +1,6 @@
 #! /bin/env python3
 
+from ctypes import LittleEndianStructure
 import numpy as np
 import h5py
 import sys
@@ -27,14 +28,14 @@ def to_cart (R3, Mu, Phi, flipyy = 0):
 
 #Use this_function to map 3D->2D
 def to_cart_32D (R, Theta, Phi):
-    n1, n2, n3 = (1,0,0)
+    n = np.array([1,0,0])
     xi = R * np.sin (Theta) * np.cos (Phi)
     yi = R * np.sin (Theta) * np.sin (Phi)
     zi = R * np.cos (Theta)
 
-    x = np.linalg.norm(np.cross((xi,yi,zi),(n1,n2,n3)))
+    x = np.linalg.norm(np.cross((xi,yi,zi),n))
     y = 0.0
-    z = np.dot(a,b)
+    z = np.dot((xi,yi,zi),n)
 
     return x,y,znth, nph, yywt, nx, ny, nz, nnuc, x0, y0, z0
     # return x,y,znth, nph, yywt, nx, ny, nz, nnuc, x0, y0, &
@@ -52,19 +53,33 @@ def map3d(model, rl, rr, thl, thr, phil, phir, x0, x1, z0, z1, nx, ny, nz, tol):
     # print(np.shape(rho))
     # exit()
 
-    thl = np.concatenate((thl, thl))
-    thr = np.concatenate((thr, thr))
-
-    nr  = np.size(rl)
-    nth = np.size(thl)
+    nr = np.size(rl)
     nph = np.size(phil)
-    nnuc = np.size(xnu[0,0,0,:])
+    nnuc = np.size(xnu[0, 0, 0, :])
 
-    yzl = np.concatenate((model.yzl(), model.yzl()))
-    yzr = np.concatenate((model.yzr(), model.yzr()))
-    yzn = np.concatenate((model.yzn(), model.yzn()))
+    print(nr, nph, nx, ny, nz)
+    # input()
 
-    yywt = np.concatenate((model.yinyang_weight(), model.yinyang_weight()))
+    if nph > 1:
+        print('Yes 1')
+        thl = np.concatenate((thl, thl))
+        thr = np.concatenate((thr, thr))
+    
+    nth = np.size(thl)
+
+    if nph > 1:
+        print('Yes 2')
+        yzl = np.concatenate((model.yzl(), model.yzl()))
+        yzr = np.concatenate((model.yzr(), model.yzr()))
+        yzn = np.concatenate((model.yzn(), model.yzn()))
+    else:
+        yzl = model.yzl()
+        yzr = model.yzr()
+        yzn = model.yzn()
+
+    if nph > 1:
+        print('Yes 3')
+        yywt = np.concatenate((model.yinyang_weight(), model.yinyang_weight()))
 
     xigmap = 0.0
 
@@ -75,7 +90,12 @@ def map3d(model, rl, rr, thl, thr, phil, phir, x0, x1, z0, z1, nx, ny, nz, tol):
     dv_theta = abs(np.cos(yzl)-np.cos(yzr))
     dv_phi = model.zzr() - model.zzl()
     # CHECK YINYANG GRID AND WEIGHT
-    dv = dv_r[:,np.newaxis,np.newaxis]*dv_theta[np.newaxis,:,np.newaxis]*dv_phi[np.newaxis,np.newaxis,:]*yywt[np.newaxis,:,:]
+    if nph > 1:
+        print('Yes 4')
+        # input()
+        dv = dv_r[:,np.newaxis,np.newaxis]*dv_theta[np.newaxis,:,np.newaxis]*dv_phi[np.newaxis,np.newaxis,:]*yywt[np.newaxis,:,:]
+    else:
+        dv = dv_r[:,np.newaxis,np.newaxis]*dv_theta[np.newaxis,:,np.newaxis]*dv_phi[np.newaxis,np.newaxis,:]
     # print(np.shape(dv))
     # exit()
     xig=np.sum(xnu[:,:,:,14:nnuc-1],axis=3)
@@ -94,6 +114,7 @@ def map3d(model, rl, rr, thl, thr, phil, phir, x0, x1, z0, z1, nx, ny, nz, tol):
     print('Ar mass',np.sum(dv*rho*xnu[:,:,:,12]*solmassi),'M_sun')
     print('Ca mass',np.sum(dv*rho*xnu[:,:,:,13]*solmassi),'M_sun')
     print('Ti mass',np.sum(dv*rho*xnu[:,:,:,14]*solmassi),'M_sun')
+    # input()
 
     dmi = 1. / np.sum (rho[:,:,:]*dv,axis=(1,2))
     xhe = np.sum(rho[:,:,:]*xnu[:,:,:,4]*dv,axis=(1,2)) * dmi
@@ -133,7 +154,17 @@ def map3d(model, rl, rr, thl, thr, phil, phir, x0, x1, z0, z1, nx, ny, nz, tol):
 
     plt.savefig('composition.pdf')
     plt.close('all')
+    plt.clf()
 
+    plt.plot(model.xzn(), xhe, linestyle='dashed', label='He', color='blue')
+    plt.plot(model.xzn(), xc , linestyle='dashed', label='C', color='red')
+    plt.plot(model.xzn(), xo , linestyle='dashed', label='O', color='orange')
+    plt.plot(model.xzn(), xne, linestyle='dashed', label='Ne', color='brown')
+    plt.plot(model.xzn(), xmg, linestyle='dashed', label='Mg', color='green')
+    plt.plot(model.xzn(), xsi, linestyle='dashed', label='Si', color='cyan')
+    plt.plot(model.xzn(), xca, linestyle='dashed', label='Ca', color='magenta')
+    plt.plot(model.xzn(), xigav, linestyle='dashed', label='iron group', color='k')
+    # plt.plot(model.xzn()**3*(4.*np.pi/3.)*model.den()[:,0,0], xigav, linestyle='dashed', label='3D X_ig')
 #    for i in range(nnuc):
 #        xnu[:,:,:,i]=xnu[:,:,:,i]*rho[:,:,:]
 
@@ -151,7 +182,7 @@ def map3d(model, rl, rr, thl, thr, phil, phir, x0, x1, z0, z1, nx, ny, nz, tol):
     dphi = 2.0 * np.pi / nph
 
     if (nph == 1):
-        phil[:] = -0.0
+        phil[:] =  0.0
         phir[:] =  0.0
         phic[:] =  0.0
 
@@ -228,10 +259,7 @@ def map3d(model, rl, rr, thl, thr, phil, phir, x0, x1, z0, z1, nx, ny, nz, tol):
     # plt.ylabel(r'$z\ [\mathrm{cm}]$')
     # plt.gca().set_aspect('equal', adjustable='box')
     # plt.show()
-    #
-    # plt.contourf(z,x,xignew[:,ny//2,:],50)
-    # plt.xlabel(r'$x\ [\mathrm{cm}]$')
-    # plt.ylabel(r'$z\ [\mathrm{cm}]$')
+    #plt.plot(x, xignew[:,0,0], label = '1D X_ig')plt.plot(x, xignew[:,0,0], label = '1D X_ig')
     # plt.gca().set_aspect('equal', adjustable='box')
     # plt.savefig('iron_group.pdf')
     #
@@ -247,6 +275,54 @@ def map3d(model, rl, rr, thl, thr, phil, phir, x0, x1, z0, z1, nx, ny, nz, tol):
     # plt.gca().set_aspect('equal', adjustable='box')
     # plt.savefig('helium.pdf')
     # print('Plots saved')
+
+    plt.plot(x, xnunew[:,0,0,4], color='blue')
+    plt.plot(x, xnunew[:,0,0,5], color='red')
+    plt.plot(x, xnunew[:,0,0,7], color='orange')
+    plt.plot(x, xnunew[:,0,0,8], color='brown')
+    plt.plot(x, xnunew[:,0,0,9], color='green')
+    plt.plot(x, xnunew[:,0,0,10], color='cyan')
+    plt.plot(x, xnunew[:,0,0,13], color='magenta')
+    plt.plot(x, xignew[:,0,0], color='k')
+    # plt.plot(x**3*(4.*np.pi/3.)*rhonew[:,0,0], xignew[:,0,0], label = '1D X_ig')
+    plt.xlabel('r [cm]')
+    plt.ylabel(r'$\Delta M_i\ [M_\odot]$')
+    plt.legend()
+    plt.title('Dashed is 3D - Solid is mapped 1D')
+    plt.savefig('composition_comparison.pdf')
+    # plt.show()
+
+    plt.clf()
+    end_point = np.where(model.xzn()>x[nx//2])[0][0]
+
+    # plt.plot(model.xzn(), xhe, linestyle='dashed', label='He', color='blue')
+    plt.plot(model.xzn()[:end_point], xc[:end_point] , linestyle='dashed', label='C', color='red')
+    plt.plot(model.xzn()[:end_point], xo[:end_point] , linestyle='dashed', label='O', color='orange')
+    plt.plot(model.xzn()[:end_point], xne[:end_point], linestyle='dashed', label='Ne', color='brown')
+    plt.plot(model.xzn()[:end_point], xmg[:end_point], linestyle='dashed', label='Mg', color='green')
+    plt.plot(model.xzn()[:end_point], xsi[:end_point], linestyle='dashed', label='Si', color='cyan')
+    plt.plot(model.xzn()[:end_point], xca[:end_point], linestyle='dashed', label='Ca', color='magenta')
+    plt.plot(model.xzn()[:end_point], xigav[:end_point], linestyle='dashed', label='iron group', color='k')
+    # plt.plot(x, xnunew[:,0,0,4], color='blue')
+    plt.plot(x[:nx//2], xnunew[:nx//2,0,0,5], color='red')
+    plt.plot(x[:nx//2], xnunew[:nx//2,0,0,7], color='orange')
+    plt.plot(x[:nx//2], xnunew[:nx//2,0,0,8], color='brown')
+    plt.plot(x[:nx//2], xnunew[:nx//2,0,0,9], color='green')
+    plt.plot(x[:nx//2], xnunew[:nx//2,0,0,10], color='cyan')
+    plt.plot(x[:nx//2], xnunew[:nx//2,0,0,13], color='magenta')
+    plt.plot(x[:nx//2], xignew[:nx//2,0,0], color='k')
+    # plt.plot(x**3*(4.*np.pi/3.)*rhonew[:,0,0], xignew[:,0,0], label = '1D X_ig')
+    plt.xlabel('r [cm]')
+    plt.ylabel(r'$\Delta M_i\ [M_\odot]$')
+    plt.legend()
+    plt.title('Dashed is 3D - Solid is mapped 1D')
+    plt.savefig('composition_comparison_no_He.pdf')
+    # plt.show()
+    plot = open('comp_plot_data.txt', 'w')
+    for i in range(nx):
+        plot.write("%16.8e %16.8e  %16.8e %16.8e %16.8e %16.8e %16.8e %16.8e\n" %
+                   (x[i], xnunew[i, 0, 0, 5], xnunew[i, 0, 0, 7], xnunew[i, 0, 0, 8], xnunew[i, 0, 0, 9], xnunew[i, 0, 0, 10], xnunew[i, 0, 0, 13], xignew[i, 0, 0]))
+    plt.close()
 
 # Density and Detailed composition for ARTIS
 # Assuming slightly proton-rich ejecta
@@ -264,9 +340,10 @@ def map3d(model, rl, rr, thl, thr, phil, phir, x0, x1, z0, z1, nx, ny, nz, tol):
     xartis[:,:,:,5]  = 0.0 # B
     xartis[:,:,:,6]  = xnunew [:,:,:,5] # C
     xartis[:,:,:,7]  = xnunew [:,:,:,6] # N
-    xartis[:,:,:,8]  = xnunew [:,:,:,7] # O
+    # CHANGING THE O/Mg RATIO
+    xartis[:,:,:,8]  = xnunew [:,:,:,7] + 0.5 * xnunew [:,:,:,9] # O+0.5xMg
     xartis[:,:,:,10] = xnunew [:,:,:,8] # Ne
-    xartis[:,:,:,12] = xnunew [:,:,:,9] # Mg
+    xartis[:,:,:,12] = 0.5 * xnunew [:,:,:,9] # 0.5xMg
     xartis[:,:,:,14] = xnunew [:,:,:,10] # Si
     xartis[:,:,:,16] = xnunew [:,:,:,11] # S
     xartis[:,:,:,18] = xnunew [:,:,:,12] # Ar
@@ -293,34 +370,11 @@ def map3d(model, rl, rr, thl, thr, phil, phir, x0, x1, z0, z1, nx, ny, nz, tol):
     xni56 = xni56 * xsumi
     xignew = xignew * xsumi
 
-#     print('Writing input files for ARTIS.')
-#
-#     f = open('model.txt', 'tw')
-#     g = open('abundances.txt', 'tw')
-#
-#
-# # CHECK WITH STUART AND FINN HOW THEY SET UP 3D INPUT DATA
-#     ij = 0
-#     f.write ("%d \n" % (nx*ny*nz))
-#     time = model.time()
-#     f.write ("%16.8e \n" % (time/86400.))
-#     f.write ("%16.8e \n" % (max(x1/time,z1/time)))
-#     for kk in range(nz):
-#         for jj in range(ny):
-#             for ii in range(nx):
-#                 ij += 1
-#                 f.write ("%d %16.8e %16.8e %16.8e %16.8e \n %16.8e %16.8e %16.8e %16.8e %16.8e \n" % (ij, x[ii], y[jj], z[kk], xartis[ii,jj,kk,0], xignew[ii,jj,kk], xni56[ii,jj,kk], xco56[ii,jj,kk], xfe52[ii,jj,kk], xcr48[ii,jj,kk]))
-#                 out = " ".join(("%16.8e " %dat) for dat in tuple(xartis[ii,jj,kk,1:]))
-#                 g.write(("%d " % ij) + out + " \n")
-#
-#     f.closed
-#     g.closed
-
+# OLD STUFF KEPT HERE AS REFERENCE
     print('Writing input files for ARTIS.')
 
-    f = open('model_1d_100.txt', 'w')
-    # h = open('model.txt', 'tw')
-    g = open('abundances.txt', 'w')
+    f = open('model_3d_omg.txt', 'tw')
+    g = open('abundances_3d_omg.txt', 'tw')
 
 
 # CHECK WITH STUART AND FINN HOW THEY SET UP 3D INPUT DATA
@@ -328,28 +382,53 @@ def map3d(model, rl, rr, thl, thr, phil, phir, x0, x1, z0, z1, nx, ny, nz, tol):
     f.write ("%d \n" % (nx*ny*nz))
     time = model.time()
     f.write ("%16.8e \n" % (time/86400.))
-    # f.write ("%16.8e \n" % (max(x1/time,z1/time)))
-    # print(x)
-    # print(time)
+    f.write ("%16.8e \n" % (max(x1/time,z1/time)))
     for kk in range(nz):
         for jj in range(ny):
             for ii in range(nx):
                 ij += 1
-                velocity = (x[ii]/1.e5)/time
-                # print(velocity)
-                f.write ("%d %16.8e %16.8e %16.8e %16.8e %16.8e %16.8e %16.8e \n" % (ij, velocity, np.log10(xartis[ii,jj,kk,0]), xignew[ii,jj,kk], xni56[ii,jj,kk], xco56[ii,jj,kk], xfe52[ii,jj,kk], xcr48[ii,jj,kk]))
-                # f.write("%d %16.8e %16.8e %16.8e %16.8e \n" % (ij, velocity, np.log10(xartis[ii,jj,kk,0]), xignew[ii,jj,kk], xni56[ii,jj,kk]))
-                # print(ij, velocity, np.log10(xartis[ii,jj,kk,0]), xni56[ii,jj,kk], xignew[ii,jj,kk])
-                # h.write ("%d %16.8e %16.8e %16.8e %16.8e %16.8e %16.8e %16.8e \n" % (ij, x[ii], xartis[ii,jj,kk,0], xignew[ii,jj,kk], xni56[ii,jj,kk], xco56[ii,jj,kk], xfe52[ii,jj,kk], xcr48[ii,jj,kk]))
+                f.write ("%d %16.8e %16.8e %16.8e %16.8e \n %16.8e %16.8e %16.8e %16.8e %16.8e \n" % (ij, x[ii], y[jj], z[kk], xartis[ii,jj,kk,0], xignew[ii,jj,kk], xni56[ii,jj,kk], xco56[ii,jj,kk], xfe52[ii,jj,kk], xcr48[ii,jj,kk]))
                 out = " ".join(("%16.8e " %dat) for dat in tuple(xartis[ii,jj,kk,1:]))
                 g.write(("%d " % ij) + out + " \n")
 
     f.closed
     g.closed
-    # h.closed
-#
-#
-#
+
+    # print('Writing input files for ARTIS.')
+
+    # f = open('model_1d_100_omg.txt', 'w')
+    # # h = open('model.txt', 'w')
+    # g = open('abundances_omg.txt', 'w')
+
+
+
+    # ij = 0
+    # f.write ("%d \n" % (nx*ny*nz))
+    # time = model.time()
+    # f.write ("%16.8e \n" % (time/86400.))
+    # # f.write ("%16.8e \n" % (max(x1/time,z1/time)))
+    # # print(x)
+    # # print(time)
+    # for kk in range(nz):
+    #     for jj in range(ny):
+    #         for ii in range(nx):
+    #             ij += 1
+    #             velocity = (x[ii]/1.e5)/time
+    #             # print(velocity)
+    #             f.write ("%d %16.8e %16.8e %16.8e %16.8e %16.8e %16.8e %16.8e \n" % (ij, velocity, np.log10(xartis[ii,jj,kk,0]), xignew[ii,jj,kk], xni56[ii,jj,kk], xco56[ii,jj,kk], xfe52[ii,jj,kk], xcr48[ii,jj,kk]))
+    #             # WRITING FOR 1D MODEL HERE
+    #             # f.write("%d %16.8e %16.8e %16.8e %16.8e \n" % (ij, velocity, np.log10(xartis[ii,jj,kk,0]), xignew[ii,jj,kk], xni56[ii,jj,kk]))
+    #             # print(ij, velocity, np.log10(xartis[ii,jj,kk,0]), xni56[ii,jj,kk], xignew[ii,jj,kk])
+    #             # h.write ("%d %16.8e %16.8e %16.8e %16.8e %16.8e %16.8e %16.8e \n" % (ij, x[ii], xartis[ii,jj,kk,0], xignew[ii,jj,kk], xni56[ii,jj,kk], xco56[ii,jj,kk], xfe52[ii,jj,kk], xcr48[ii,jj,kk]))
+    #             out = " ".join(("%16.8e " %dat) for dat in tuple(xartis[ii,jj,kk,1:]))
+    #             g.write(("%d " % ij) + out + " \n")
+
+    # f.closed
+    # g.closed
+    # # h.closed
+
+
+
 #     print('Writing HDF file...')
 #     with h5py.File('s3.5_mapped.h5', 'w') as hf:
 #        hf.create_dataset('model', data=xartis)
@@ -357,13 +436,22 @@ def map3d(model, rl, rr, thl, thr, phil, phir, x0, x1, z0, z1, nx, ny, nz, tol):
 
 # # Check mass of mapped model
     dv0 = dx*dy*dz
+    print(dx, dy, dz)
+    print(dv0)
     if ny ==1 and nz == 1:
         mc = np.arange(0, nx)
         dv0 = (4./3.)*np.pi*(3*mc**2+3*mc+1)*dx**3
-    print("Mass of mapped model:",np.sum(xartis[:,:,:,0]*dv0[:,np.newaxis,np.newaxis])*solmassi,"M_sun")
-    print("Iron group:          ",np.sum(xartis[:,:,:,0]*xignew[:,:,:]*dv0[:,np.newaxis,np.newaxis])*solmassi,"M_sun")
-    print("Mapped mass/Inital mass:", np.sum(xartis[:,:,:,0]*dv0[:,np.newaxis,np.newaxis])*solmassi/initial_mass)
-    print("Mapped IG mass/Inital IG mass:", np.sum(xartis[:,:,:,0]*xignew[:,:,:]*dv0[:,np.newaxis,np.newaxis])*solmassi/initial_IG_mass)
+    if type(dv0) == float:
+        print("Mass of mapped model:", np.sum(xartis[:, :, :, 0]*dv0)*solmassi, "M_sun")
+        print("Iron group:          ", np.sum(xartis[:, :, :, 0]*xignew[:, :, :]*dv0)*solmassi, "M_sun")
+        print("Mapped mass/Inital mass:",np.sum(xartis[:, :, :, 0]*dv0)*solmassi/initial_mass)
+        print("Mapped IG mass/Inital IG mass:",np.sum(xartis[:, :, :, 0]*xignew[:, :, :]*dv0)*solmassi/initial_IG_mass)
+    else:
+        print("Mass of mapped model:",np.sum(xartis[:,:,:,0]*dv0[:,np.newaxis,np.newaxis])*solmassi,"M_sun")
+        print("Iron group:          ", np.sum(xartis[:, :, :, 0]*xignew[:, :, :]*dv0[:, np.newaxis, np.newaxis])*solmassi, "M_sun")
+        print("Mapped mass/Inital mass:",np.sum(xartis[:, :, :, 0]*dv0[:, np.newaxis, np.newaxis])*solmassi/initial_mass)
+        print("Mapped IG mass/Inital IG mass:",np.sum(xartis[:, :, :, 0]*xignew[:, :, :]*dv0[:, np.newaxis, np.newaxis])*solmassi/initial_IG_mass)
+    
     # print(xartis[:,:,:,0])
 
     # if np.argwhere(np.isnan(xartis[:,:,:,0])) != []:

@@ -20,6 +20,8 @@ SUBROUTINE mapping(nr, nth, nph, yywt, nx, ny, nz, nnuc, x0, y0, &
   REAL*8, INTENT(inout)  ::  rhonew(0:nx-1, 0:ny-1, 0:nz-1)
   REAL*8, INTENT(inout)  ::  xnunew(0:nx-1, 0:ny-1, 0:nz-1, 0:nnuc-1)
   REAL*8, PARAMETER  ::  pi = 4.d0 * ATAN(1.d0)
+  ! REAL*8 :: mapped_mass = 0.0
+  ! REAL*8 :: input_mass = 0.0
   INTEGER  ::  kk, km1, kp1, jj, jm1, jp1, ii, im1, ip1, nsub, nsubmax, flipyy
   REAL*8  ::  sr, sl, s1rho, s2rho, s3rho, r3c0, muc0, phic0, dv, dv0, &
     rho0, rho0i, dphii, dxi, dyi, dzi, xoffs, yoffs, zoffs
@@ -28,6 +30,9 @@ SUBROUTINE mapping(nr, nth, nph, yywt, nx, ny, nz, nnuc, x0, y0, &
     delta_xnu0(0:nnuc-1)
 
   print*,'Using tolerance',tol
+
+  ! print*,nx,ny,nz
+  print*,dx,dy,dz
 
   flipyy = 0
 
@@ -42,7 +47,7 @@ SUBROUTINE mapping(nr, nth, nph, yywt, nx, ny, nz, nnuc, x0, y0, &
   zoffs = - z0 * dzi
 
    DO kk = 0,nph-1
-!  print*,'kk = ',kk
+     print*,'kk = ',kk
 
      km1 = max(kk-1,0)
      kp1 = min(kk+1,nph-1)
@@ -69,6 +74,13 @@ SUBROUTINE mapping(nr, nth, nph, yywt, nx, ny, nz, nnuc, x0, y0, &
 
        DO ii = 0,nr-1
         ! print*,'ii = ',ii
+
+          !IF (nph==1) THEN
+          !  dv = abs(Xr-Xl) * abs(Yr-Yl) * dphi
+          !ELSE
+            dv = abs(r3r(ii) - r3l(ii)) * abs(mur(jj)-mul(jj)) * abs(phir(kk)-phil(kk)) * yywt(jj,kk)
+          !END IF
+          ! input_mass = input_mass + rho(ii,jj,kk) * dv
 
          im1 = max(ii-1,0)
          ip1 = min(ii+1,nr-1)
@@ -114,10 +126,7 @@ SUBROUTINE mapping(nr, nth, nph, yywt, nx, ny, nz, nnuc, x0, y0, &
 
          s1xnu = s1xnu / (1.d0+ abs(s1rho * (r3r(ii) - r3l(ii)) * rho0i) * x12)
          s2xnu = s2xnu / (1.d0+ abs(s2rho * (mur(jj) - mul(jj)) * rho0i) * x12)
-         s3xnu = s3xnu / (1.d0IF (ny==1) THEN
-
-ELSE
-+ abs(s3rho * (phir(kk) - phil(kk)) * rho0i) * x12)
+         s3xnu = s3xnu / (1.d0+ abs(s3rho * (phir(kk) - phil(kk)) * rho0i) * x12)
 
 
 	 !s1rho = 0.d0
@@ -145,6 +154,10 @@ ELSE
      END DO theta_loop
   END DO
 
+  ! PRINT*,'maped_mass',mapped_mass,mapped_mass/1.99d33
+  ! PRINT*,'input_mass',input_mass,input_mass/1.99d33
+
+
  CONTAINS
    ELEMENTAL REAL*8 FUNCTION heaviside(x1)
      IMPLICIT NONE
@@ -170,34 +183,74 @@ ELSE
      INTEGER, INTENT(in)  ::  flipyy
      REAL*8, DIMENSION(3)  ::  triple
      REAL*8  ::  x, y, z, tempx, tempy, tempz, R, Theta, s
+     REAL*8  ::  n1, n2, n3, cx, cy, cz, tempx2, tempy2, tempz2
+     REAL*8, DIMENSION(3)  :: cross_prod
 
-     R = 3.d0*R3**p13
+     R = (3.d0*R3)**p13
   	 Theta = acos(Mu)
      s = sin(Theta)
 
-     IF (ny>=1 .and. nz >=1) THEN !3d
+     IF (ny>1 .and. nz >1) THEN !3d
        tempx = R * s * cos(Phi)
        tempy = R * s * sin(Phi)
        tempz = R * Mu
-     ELSEIF (ny==1 .and. nz >=1) THEN !2d
-       tempx = R * s
-       tempy = 0.
-       tempz = R * Mu
+       IF (flipyy == 0) THEN
+         x = tempx
+         y = tempy
+         z = tempz
+       ELSE
+         x = -tempx
+         y = tempz
+         z = tempy
+       END IF
+    !  ELSEIF (ny>1 .and. nz>1 .and. nr>1 .and. nth==1 .and. nph>1) THEN !3d to 2d
+    !    n1 = 1.d0
+    !    n2 = 0.d0
+    !    n3 = 0.d0
+    !    tempx = R * s * cos(Phi)
+    !    tempy = R * s * sin(Phi)
+    !    tempz = R * cos(Theta)
+    !    IF (flipyy == 0) THEN
+    !      tempx2 = tempx
+    !      tempy2 = tempy
+    !      tempz2 = tempz
+    !    ELSE
+    !      tempx2 = -tempx
+    !      tempy2 = tempz
+    !      tempz2 = tempy
+    !    END IF
+       cx = tempy2 * n3 - tempz2 * n2
+       cy = tempz2 * n1 - tempx2 * n3
+       cz = tempx2 * n2 - tempy2 * n1
+       cross_prod(:) = (/ cx, cy, cz /)
+       x = NORM2(cross_prod)
+       y = 0.d0
+       z = DOT_PRODUCT((/ tempx2, tempy2, tempz2 /), (/ n1, n2, n3 /))
+     ELSEIF (ny==1 .and. nz >1) THEN !2d
+       x = R * s
+       y = 0.
+       z = R * Mu
      ELSE !1d
-       tempx = R
-       tempy = 0.0
-       tempz = 0.0
+       x = R
+       y = 0.0
+       z = 0.0
      ENDIF
 
-     IF (flipyy == 0) THEN
-       x = tempx
-       y = tempy
-       z = tempz
-     ELSE
-       x = -tempx
-       y = tempz
-       z = tempy
-     END IF
+    !  n1 = 1.d0
+    !  n2 = 0.d0
+    !  n3 = 0.d0
+    !  tempx = R * s * cos(Phi)
+    !  tempy = R * s * sin(Phi)
+    !  tempz = R * cos(Theta)
+    !  cx = tempy * n3 - tempz * n2
+    !  cy = tempz * n1 - tempx * n3
+    !  cz = tempx * n2 - tempy * n1
+    !  cross_prod(:) = (/ cx, cy, cz /)
+    !  x = NORM2(cross_prod)
+    !  y = 0.d0
+    !  z = DOT_PRODUCT((/ tempx, tempy, tempz /), (/ n1, n2, n3 /))
+    
+     
 
      triple(:) = (/ x, y, z /)
 
@@ -218,6 +271,8 @@ ELSE
      triple(1) = floor(x*dxi + xoffs)
      triple(2) = floor(y*dyi + yoffs)
      triple(3) = floor(z*dzi + zoffs)
+     IF (ny.eq.1) triple(2)=0
+     IF (nz.eq.1) triple(3)=0
 
    END FUNCTION target_indices
 
@@ -272,7 +327,7 @@ ELSE
 !    print*,dv
      IF (ny==1) THEN
        IF (nz==1) THEN
-         dv0 = (4./3.)*pi*(3*mc**2+3*mc+1)*dx**3
+         dv0 = (4./3.)*pi*(3*mc**2+3*mc+1.0)*dx**3
        ELSE
          dv0 = pi*(2*mc+1)*dx**2*dz
        END IF
@@ -282,9 +337,13 @@ ELSE
      END IF
 !    print*,dv0
      IF ((max(m0,m1)>=nx) .OR. (max(n0,n1)>=ny) .OR. (max(o0,o1)>=nz)) THEN
+     !   print*,'outside ARTIS grid (a)',m0,m1,n0,n1,o0,o1,(r3c0*3)**(1.0/3.0), &
+     !    muc0,phic0
        RETURN
      END IF
      IF ((min(m0,m1)<0) .OR. (min(n0,n1)<0) .OR. (min(o0,o1)<0)) THEN
+     !   print*,'outside ARTIS grid (b)',m0,m1,n0,n1,o0,o1,(r3c0*3)**(1.0/3.0), &
+     !    muc0,phic0
        RETURN
      END IF
 
@@ -293,6 +352,8 @@ ELSE
         rhonew(mc,nc,oc) = rhonew(mc,nc,oc) + temp
         xnunew(mc,nc,oc,:) = xnunew(mc,nc,oc,:) + temp * &
              (xnu0(:)+s1xnu(:)*(Xc-r3c0)+s2xnu(:)*(Yc-muc0)+s3xnu(:)*(Zc-phic0))
+        ! print*,'map',(r3c0*3)**(1.0/3.0),muc0,phic0,mc,nc,oc,dx*(mc+0.5),dv,dv0
+        ! mapped_mass = mapped_mass + temp * dv0
        RETURN
     endif
 
